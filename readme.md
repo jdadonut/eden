@@ -2,7 +2,7 @@
 by using a custom jvm, we're able to call java functions directly from Rust!
 
 ```rs
-use eden::prelude;
+use eden::prelude::*;
 use eden::j_invokestatic;
 
 fn main() {
