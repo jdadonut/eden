@@ -3,12 +3,12 @@ use log::warn;
 use super::{raw_class::RawClass, FileReadUtility};
 
 
-pub struct ClassFile<'a> {
+pub struct ClassFile {
     reader: FileReadUtility,
     path: String,
     classpath: String,
     metadata: ClassFileMetadata,
-    class: RawClass<'a>,
+    class: RawClass,
 }
 pub struct ClassFileMetadata {
     magic: u32,
@@ -16,7 +16,7 @@ pub struct ClassFileMetadata {
     major_version: u16,
 }
 
-impl <'a> ClassFile<'a> {
+impl  ClassFile {
     pub fn new(path: &str) -> Option<Self> {
         let mut reader = match FileReadUtility::new(path) {
             Ok(reader) => reader,

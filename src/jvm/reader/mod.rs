@@ -1,17 +1,18 @@
-use std::{fs::File, io::{Read, Seek}};
+use std::{fs::File, io::{Read, Seek, SeekFrom}};
 
 pub mod classfile;
 pub mod raw_class;
-pub mod constant_pool;
+pub mod constant_pool_info;
 pub mod access_flags;
+pub mod method;
 
 
-
-trait Fileish: Read + Seek {}
+pub trait Fileish: Read + Seek {}
 pub struct FileReadUtility {
     file: Box<dyn Fileish>,
 }
-impl Fileish for File {}
+
+impl<T> Fileish for T where T: Read + Seek {}
 
 impl FileReadUtility {
     pub fn new(path: &str) -> Result<Self, ()> {
@@ -74,49 +75,49 @@ impl FileReadUtility {
         self.read_string(length)
     }
 
-    pub fn read_u1_at(&mut self, offset: u64) -> Result<u8, ()> {
+    pub fn peek_u1(&mut self, offset: u64) -> Result<u8, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_byte();
         self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
         ret
     }
-    pub fn read_u2_at(&mut self, offset: u64) -> Result<u16, ()> {
+    pub fn peek_u2(&mut self, offset: u64) -> Result<u16, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_u2();
         self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
         ret
     }
-    pub fn read_u4_at(&mut self, offset: u64) -> Result<u32, ()> {
+    pub fn peek_u4(&mut self, offset: u64) -> Result<u32, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_u4();
         self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
         ret
     }
-    pub fn read_u8_at(&mut self, offset: u64) -> Result<u64, ()> {
+    pub fn peek_u8(&mut self, offset: u64) -> Result<u64, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_u8();
         self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
         ret
     }
-    pub fn read_string_at(&mut self, offset: u64, length: usize) -> Result<String, ()> {
+    pub fn peek_string(&mut self, offset: u64, length: usize) -> Result<String, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_string(length);
         self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
         ret
     }
-    pub fn read_string_tonull_at(&mut self, offset: u64) -> Result<String, ()> {
+    pub fn peek_string_tonull(&mut self, offset: u64) -> Result<String, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_string_tonull();
         self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
         ret
     }
-    pub fn read_jstring_at(&mut self, offset: u64) -> Result<String, ()> {
+    pub fn peek_jstring(&mut self, offset: u64) -> Result<String, ()> {
         let pos = self.file.seek(std::io::SeekFrom::Current(0)).unwrap();
         self.file.seek(std::io::SeekFrom::Start(offset)).unwrap();
         let ret = self.read_jstring();
@@ -124,5 +125,13 @@ impl FileReadUtility {
         ret
     }
     
-    
+    pub fn pos(&mut self) -> u64 {
+        self.file.seek(std::io::SeekFrom::Current(0)).unwrap()
+    }
+    pub fn seek(&mut self, from: SeekFrom) {
+        self.file.seek(from).unwrap();
+    }
+    pub fn seek_to(&mut self, pos: u64) {
+        self.file.seek(std::io::SeekFrom::Start(pos)).unwrap();
+    }
 }
