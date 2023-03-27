@@ -1,10 +1,14 @@
-use std::{error::Error, clone};
+use std::io::Read;
+use std::{error::Error};
 use std::fmt::Debug;
 use log::{error, warn};
 
 
-use super::FileReadUtility;
-use super::method::MethodHandleKind;
+use crate::io::BufferReadable;
+use crate::util::code_err::ClassParseError;
+
+use super::method_handle_kind::MethodHandleKind;
+
 #[derive(Debug, Clone)]
 pub struct ConstantPool(Vec<ConstantPoolEntry>);
 
@@ -15,7 +19,7 @@ impl ConstantPool {
         let len = u16::from_be_bytes(buf.try_into()?);
         let mut offset = 2;
         let mut cp = Vec::with_capacity(len as usize);
-        for i in 1..len {
+        for _ in 1..len {
             let (cpe, bytes) = ConstantPoolEntry::from_buffer(&buf[offset..]);
             cp.push(cpe);
             offset += bytes;
@@ -23,13 +27,20 @@ impl ConstantPool {
         Ok((ConstantPool(cp), offset))
     }
 
-    pub fn from_fileish(file: &mut FileReadUtility) -> Result<Self, Box<dyn Error>> {
+    pub fn load(file: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
         let count_entries = file.read_u2().expect("failed to read constant pool count");
-        
-        let offset = file.pos();
         let mut cp: Vec<ConstantPoolEntry> = Vec::with_capacity(count_entries as usize);
-        
-        todo!("finish this")
+        for _ in 1..count_entries {
+            let tag = file.read_byte().expect("failed to read constant pool tag");
+            let sizeof = ConstantPoolInfo::size_of_ordinal(tag);
+            let mut buf = vec![0; sizeof-1];
+            file.read_exact(&mut buf).expect("failed to read constant pool entry");
+            buf.insert(0, tag);
+            let buf = buf.as_slice();
+            let (cpe, _) = ConstantPoolEntry::from_buffer(&buf);
+            cp.push(cpe);
+        }
+        Ok(ConstantPool(cp))
 
     }
 
@@ -42,13 +53,7 @@ impl ConstantPool {
     }
 
     pub fn verify(&self) -> bool {
-        let mut test_case = self.clone();
-        for ele in test_case.0 {
-            if ele.tag != 4 && ele.tag != 5 {
-                return true;
-            }
-        }
-        return false;
+        todo!();
     }
 }
 #[derive(Debug, Clone)]
@@ -346,6 +351,34 @@ impl ConstantPoolInfo {
             }
         }
 
+    }
+
+    /// Returns the size of the constant pool info in bytes based on the provided ordinal
+    /// Includes the tag byte.
+    pub fn size_of_ordinal(ordinal: u8) -> usize {
+        match ordinal {
+            1 => 3,
+            3 => 5,
+            4 => 5,
+            5 => 9,
+            6 => 9,
+            7 => 3,
+            8 => 3,
+            9 => 5,
+            10 => 5,
+            11 => 5,
+            12 => 5,
+            15 => 4,
+            16 => 3,
+            17 => 5,
+            18 => 5,
+            19 => 3,
+            20 => 3,
+            _ => {
+                warn!("Attempted to get size of unsupported constant pool entry type with ordinal {}.", ordinal);
+                return 0;
+            }
+        }
     }
 
 }

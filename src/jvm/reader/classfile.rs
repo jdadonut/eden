@@ -1,10 +1,12 @@
 use log::warn;
 
-use super::{raw_class::RawClass, FileReadUtility};
+use crate::io::{BufferReadable, Prebuffer};
+
+use super::{raw_class::RawClass};
 
 
 pub struct ClassFile {
-    reader: FileReadUtility,
+    reader: Box<dyn BufferReadable>,
     path: String,
     classpath: String,
     metadata: ClassFileMetadata,
@@ -16,24 +18,34 @@ pub struct ClassFileMetadata {
     major_version: u16,
 }
 
-impl  ClassFile {
-    pub fn new(path: &str) -> Option<Self> {
-        let mut reader = match FileReadUtility::new(path) {
-            Ok(reader) => reader,
-            Err(_) => return None,
-        };
-
+impl ClassFile {
+    pub fn open_from(path: &str) -> Option<Self> {
+        match Prebuffer::load_file(path) {
+            Ok(reader) => Self::new(box reader),
+            Err(_) => None
+        } 
+    }
+    pub fn new(mut reader: Box<dyn BufferReadable>) -> Option<Self> {
         let metadata = match ClassFileMetadata::new(&mut reader) {
             Some(metadata) => metadata,
             None => return None,
         };
-
-        None
+        let class = match RawClass::load(&mut reader) {
+            Ok(class) => class,
+            Err(_) => return None,
+        };
+        Some(Self {
+            reader,
+            path: String::new(),
+            classpath: String::new(),
+            metadata,
+            class,
+        })
     }
 }
 
 impl ClassFileMetadata {
-    pub fn new(reader: &mut FileReadUtility) -> Option<Self> {
+    pub fn new(reader: &mut Box<dyn BufferReadable>) -> Option<Self> {
         let magic = match reader.read_u4() {
             Ok(magic) => magic,
             Err(_) => return None,

@@ -1,3 +1,1 @@
-mod from_bytes;
-
-pub use from_bytes::{FromBytes, NumByBytes};
+pub mod code_err;

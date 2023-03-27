@@ -1,44 +1,39 @@
-#[derive(Debug, Clone)]
-pub enum MethodHandleKind {
-    #[allow(dead_code, non_camel_case_types)]
-    __unused_ord_0,
-    GetField,
-    GetStatic,
-    PutField,
-    PutStatic,
-    InvokeVirtual,
-    InvokeStatic,
-    InvokeSpecial,
-    NewInvokeSpecial,
-    InvokeInterface,
-}
-impl MethodHandleKind {
-    pub fn to_ordinal(&self) -> u8 {
-        match self {
-            MethodHandleKind::__unused_ord_0 => 0,
-            MethodHandleKind::GetField => 1,
-            MethodHandleKind::GetStatic => 2,
-            MethodHandleKind::PutField => 3,
-            MethodHandleKind::PutStatic => 4,
-            MethodHandleKind::InvokeVirtual => 5,
-            MethodHandleKind::InvokeStatic => 6,
-            MethodHandleKind::InvokeSpecial => 7,
-            MethodHandleKind::NewInvokeSpecial => 8,
-            MethodHandleKind::InvokeInterface => 9,
+use crate::{io::BufferReadable, util::code_err::ClassParseError};
+
+use super::attribute::Attributes;
+
+
+pub struct Methods(pub Vec<MethodInfo>);
+
+impl Methods {
+    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+        let methods_count = buf.read_u2()?;
+        let mut methods = Vec::new();
+        for _ in 0..methods_count {
+            methods.push(MethodInfo::load(buf)?);
         }
+        Ok(Self(methods))
     }
-    pub fn from_ordinal(ordinal: u8) -> Option<Self> {
-        match ordinal {
-            1 => Some(MethodHandleKind::GetField),
-            2 => Some(MethodHandleKind::GetStatic),
-            3 => Some(MethodHandleKind::PutField),
-            4 => Some(MethodHandleKind::PutStatic),
-            5 => Some(MethodHandleKind::InvokeVirtual),
-            6 => Some(MethodHandleKind::InvokeStatic),
-            7 => Some(MethodHandleKind::InvokeSpecial),
-            8 => Some(MethodHandleKind::NewInvokeSpecial),
-            9 => Some(MethodHandleKind::InvokeInterface),
-            _ => None,
-        }
+}
+
+pub struct MethodInfo {
+    pub access_flags: u16,
+    pub name_index: u16,
+    pub descriptor_index: u16,
+    pub attributes: Attributes
+}
+
+impl MethodInfo {
+    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+        let access_flags = buf.read_u2()?;
+        let name_index = buf.read_u2()?;
+        let descriptor_index = buf.read_u2()?;
+        let attributes = Attributes::load(buf)?;
+        Ok(Self {
+            access_flags,
+            name_index,
+            descriptor_index,
+            attributes,
+        })
     }
 }
