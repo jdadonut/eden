@@ -13,6 +13,10 @@ pub enum CodeParseError {
         got: String,
         where_: String,
     },
+    InvalidBytecode {
+        at: String,
+        what: String,
+    },
     InvalidFormat,
 }
 #[derive(Debug)]
@@ -25,7 +29,7 @@ pub enum ClassParseError {
     },
     CodeParseError {
         internal: CodeParseError,
-        classpath: String,
+        classpath: Option<String>,
         signature: Option<String>,
     },
     InvalidClassfileVersion {
