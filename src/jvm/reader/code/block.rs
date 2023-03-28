@@ -1,4 +1,4 @@
-use crate::{jvm::reader::attribute::{AttributeInfo, Attributes}, io::BufferReadable, util::code_err::ClassParseError};
+use crate::{jvm::reader::attribute::{Attributes}, io::BufferReadable, util::code_err::ClassParseError};
 
 use super::{instruction::Instruction, exception_table::ExceptionTable};
 
@@ -18,7 +18,7 @@ impl CodeBlock {
         let code_length = buf.read_u4()?;
         let mut code = Vec::new();
         for _ in 0..code_length {
-            code.push(Instruction::load(buf).map_err(|x| ClassParseError::CodeParseError { internal: x, classpath: None, signature: None })?);
+            code.push(Instruction::load(buf)?);
         }
         
         let exception_table = ExceptionTable::load(buf)?;
