@@ -31,10 +31,14 @@ impl RawClass {
 
         let interfaces = Interfaces::load(buf)?;
         let fields = Fields::load(buf)?;
-        let methods = Methods::load(buf)?;
+        let mut methods = Methods::load(buf)?;
         let attributes = Attributes::load(buf)?;
 
-        Ok(Self {
+        methods.load_code(&cp)?;
+
+        
+
+        Ok(RawClass::verify(Self {
             access_flags,
             this_class,
             super_class,
@@ -43,6 +47,11 @@ impl RawClass {
             fields,
             methods,
             attributes,
-        })
+        })?)
+    }
+    fn verify(self) -> Result<Self, ClassParseError> {
+        // TODO: Verify class
+        Ok(self)
+
     }
 }

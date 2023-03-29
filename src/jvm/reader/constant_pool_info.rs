@@ -43,11 +43,6 @@ impl ConstantPool {
         Ok(ConstantPool(cp))
 
     }
-
-    pub fn get_zero_indexed() {
-        unimplemented!("what are we doing with this @kwzuu")
-    }
-
     pub fn get_java_aligned(&self, index: usize) -> Option<&ConstantPoolEntry> {
         self.0.get(index-1)
     }
@@ -58,9 +53,9 @@ impl ConstantPool {
 }
 #[derive(Debug, Clone)]
 pub struct ConstantPoolEntry {
-    tag: u8,
-    info: ConstantPoolInfo,
-}
+    pub tag: u8,
+    pub info: ConstantPoolInfo,
+} 
 
 impl ConstantPoolEntry {
     pub(super) fn from_buffer(buf: &[u8]) -> (Self, usize) {
@@ -72,8 +67,6 @@ impl ConstantPoolEntry {
             error!("Something went wrong while reading constant pool entry. Previous logs should have more information.\n\tTag: {}\n\tBuffer: {:?}", tag, buf);
             (Self { tag, info: ConstantPoolInfo::__unused_ord_0 }, 0)
         }
-        
-
     }
 }
 

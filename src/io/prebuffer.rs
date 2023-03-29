@@ -47,6 +47,9 @@ impl Prebuffer {
             Err(err) => Err(ClassParseError::IOError { internal: err, classpath: None, path: Some(path.to_string())}),
         }
     }
+    pub fn copy_from_vec(data: &Vec<u8>) -> Self {
+        Self::new(data.clone().into_boxed_slice())
+    }
     pub fn read_n_bytes(&mut self, n: usize) -> Result<&[u8], ClassParseError> {
         if self.position + n > self.data.len() {
             return Err(ClassParseError::EarlyEOF(format!("EOF in Prebuffer, reading {} bytes when we only have {} left.", n, self.data.len() - self.position).to_string()));

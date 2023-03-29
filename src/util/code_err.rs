@@ -17,6 +17,7 @@ pub enum CodeParseError {
         at: String,
         what: String,
     },
+    CodeEntryNotFound,
     InvalidFormat,
 }
 #[derive(Debug)]
