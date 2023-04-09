@@ -1,10 +1,10 @@
 use crate::{io::BufferReadable, util::code_err::ClassParseError};
 
-
+#[derive(Debug)]
 pub struct ExceptionTable(pub Vec<ExceptionTableEntry>);
 
 impl ExceptionTable {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let exception_table_length = buf.read_u2()?;
         let mut exception_table = Vec::new();
         for _ in 0..exception_table_length {
@@ -13,7 +13,7 @@ impl ExceptionTable {
         Ok(Self(exception_table))
     }
 }
-
+#[derive(Debug)]
 pub struct ExceptionTableEntry {
     pub start_pc: u16,
     pub end_pc: u16,
@@ -22,7 +22,7 @@ pub struct ExceptionTableEntry {
 }
 
 impl ExceptionTableEntry {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let start_pc = buf.read_u2()?;
         let end_pc = buf.read_u2()?;
         let handler_pc = buf.read_u2()?;

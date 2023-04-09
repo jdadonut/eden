@@ -2,11 +2,11 @@ use crate::{io::BufferReadable, util::code_err::ClassParseError};
 
 use super::attribute::Attributes;
 
-
+#[derive(Debug)]
 pub struct Fields(pub Vec<FieldInfo>);
 
 impl Fields {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let fields_count = buf.read_u2()?;
         let mut fields = Vec::new();
         for _ in 0..fields_count {
@@ -16,7 +16,7 @@ impl Fields {
     }
 }
 
-
+#[derive(Debug)]
 pub struct FieldInfo {
     pub access_flags: u16,
     pub name_index: u16,
@@ -24,7 +24,7 @@ pub struct FieldInfo {
     pub attributes: Attributes,
 }
 impl FieldInfo {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let access_flags = buf.read_u2()?;
         let name_index = buf.read_u2()?;
         let descriptor_index = buf.read_u2()?;

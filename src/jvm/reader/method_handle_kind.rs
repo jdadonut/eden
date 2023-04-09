@@ -1,7 +1,5 @@
 #[derive(Debug, Clone)]
 pub enum MethodHandleKind {
-    #[allow(dead_code, non_camel_case_types)]
-    __unused_ord_0,
     GetField,
     GetStatic,
     PutField,
@@ -15,7 +13,6 @@ pub enum MethodHandleKind {
 impl MethodHandleKind {
     pub fn to_ordinal(&self) -> u8 {
         match self {
-            MethodHandleKind::__unused_ord_0 => 0,
             MethodHandleKind::GetField => 1,
             MethodHandleKind::GetStatic => 2,
             MethodHandleKind::PutField => 3,

@@ -6,7 +6,7 @@ use std::{ptr::null};
 /// We reserve a layout of memory sized (*mut T) * size, and then we can index into it and dereference
 /// the pointer to get the value.
 /// 
-/// # Safety
+/// ## Safety
 /// The safety of this struct can be guaranteed to a reasonable degree- however, it is not guaranteed
 /// in every case. There will always be a way to break continuity, no matter how many steps have been 
 /// taken to ensure that this is not possible.

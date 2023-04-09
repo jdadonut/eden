@@ -1,12 +1,12 @@
 use crate::{io::BufferReadable, util::code_err::ClassParseError};
 
 use super::{
-    constant_pool_info::{ConstantPool}, interface::Interfaces, field::Fields, method::Methods, attribute::Attributes,
+    constant_pool::{ConstantPool}, interface::Interfaces, field::Fields, method::Methods, attribute::Attributes,
     //  Fileish, FileReadUtility
     };
 
 
-
+#[derive(Debug)]
 pub struct RawClass {
     access_flags: u16,
     this_class: u16,
@@ -21,7 +21,7 @@ pub struct RawClass {
 }
 
 impl RawClass {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         
         let cp = ConstantPool::load(buf)?;
 

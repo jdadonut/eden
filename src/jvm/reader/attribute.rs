@@ -1,13 +1,13 @@
 use crate::{io::BufferReadable, util::code_err::ClassParseError};
 
-use super::constant_pool_info::{ConstantPool, ConstantPoolInfo};
+use super::constant_pool::{ConstantPool, ConstantPoolInfo};
 
 // TODO: look more into this
 // https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-4.html#jvms-4.7
-
+#[derive(Debug)]
 pub struct Attributes(pub Vec<AttributeInfo>);
 impl Attributes {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let attributes_count = buf.read_u2()?;
         let mut attributes = Vec::new();
         for _ in 0..attributes_count {
@@ -24,7 +24,7 @@ impl Attributes {
         Ok(None)
     }
 }
-
+#[derive(Debug)]
 pub struct AttributeInfo {
     pub attribute_name_index: u16,
     pub attribute_length: u32,
@@ -32,7 +32,7 @@ pub struct AttributeInfo {
 }
 
 impl AttributeInfo {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let attribute_name_index = buf.read_u2()?;
         let attribute_length = buf.read_u4()?;
         let mut info = Vec::new();

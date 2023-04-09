@@ -1,6 +1,6 @@
 pub mod classfile;
 pub mod raw_class;
-pub mod constant_pool_info;
+pub mod constant_pool;
 pub mod access_flags;
 pub mod method_handle_kind;
 pub mod field;

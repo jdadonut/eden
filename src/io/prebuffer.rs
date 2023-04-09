@@ -34,17 +34,12 @@ impl Prebuffer {
         let mut file = match std::fs::File::open(path) {
             Ok(file) => file,
             Err(err) => return Err(
-                ClassParseError::IOError {
-                    internal: err,
-                    classpath: None,
-                    path: Some(path.to_string()),
-                }
-            ),
+                ClassParseError::IOError(err))
         };
         let mut data = Vec::new();
         match file.read_to_end(&mut data) {
             Ok(_) => Ok(Self::new(data.into_boxed_slice())),
-            Err(err) => Err(ClassParseError::IOError { internal: err, classpath: None, path: Some(path.to_string())}),
+            Err(err) => Err(ClassParseError::IOError(err)),
         }
     }
     pub fn copy_from_vec(data: &Vec<u8>) -> Self {
@@ -163,7 +158,7 @@ impl BufferReadable for Prebuffer {
                 self.position = pos;
                 Ok(byte)
             },
-            Err(e) => return Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => return Err(ClassParseError::IOError(e)),
         }
     }
     fn peek_u2(&mut self, offset: u64) -> Result<u16, ClassParseError> {
@@ -174,7 +169,7 @@ impl BufferReadable for Prebuffer {
                 self.position = pos;
                 Ok(byte)
             },
-            Err(e) => return Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => return Err(ClassParseError::IOError(e)),
         }
     }
     fn peek_u4(&mut self, offset: u64) -> Result<u32, ClassParseError> {
@@ -185,7 +180,7 @@ impl BufferReadable for Prebuffer {
                 self.position = pos;
                 Ok(byte)
             },
-            Err(e) => return Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => return Err(ClassParseError::IOError(e)),
         }
     }
     fn peek_u8(&mut self, offset: u64) -> Result<u64, ClassParseError> {
@@ -196,7 +191,7 @@ impl BufferReadable for Prebuffer {
                 self.position = pos;
                 Ok(byte)
             },
-            Err(e) => return Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => return Err(ClassParseError::IOError(e)),
         }  
     }
     fn peek_string(&mut self, offset: u64) -> Result<String, ClassParseError> {
@@ -207,20 +202,20 @@ impl BufferReadable for Prebuffer {
                 self.position = pos;
                 Ok(byte)
             },
-            Err(e) => return Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => return Err(ClassParseError::IOError(e)),
         }  
     }
 
     fn skip(&mut self, offset: u64) -> Result<(), ClassParseError> {
         match self.seek(SeekFrom::Current(offset as i64)) {
             Ok(_) => Ok(()),
-            Err(e) => Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => Err(ClassParseError::IOError(e)),
         }
     }
     fn seek_to(&mut self, offset: u64) -> Result<(), ClassParseError> {
         match self.seek(SeekFrom::Start(offset)) {
             Ok(_) => Ok(()),
-            Err(e) => Err(ClassParseError::IOError { internal: e, classpath: None, path: None }),
+            Err(e) => Err(ClassParseError::IOError(e)),
         }
     }
 }

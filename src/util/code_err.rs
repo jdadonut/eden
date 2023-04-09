@@ -40,15 +40,12 @@ pub enum ClassParseError {
         supported_version_max: (u16, u16),
         supported_version_min: (u16, u16),
     },
-    IOError {
-        internal: std::io::Error,
-        classpath: Option<String>,
-        path: Option<String>
-    },
+    IOError(std::io::Error),
     StringDecodeError {
         internal: std::string::FromUtf8Error,
         buffer: Vec<u8>,
     },
+    UnknownConstantPoolTag(u8),
     Silly(String),
 }
 impl Display for ClassParseError {

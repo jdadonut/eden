@@ -1,7 +1,11 @@
+use std::io::SeekFrom;
+
 use crate::{io::BufferReadable, util::code_err::{CodeParseError, ClassParseError}};
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone)]
+
+
 pub enum Instruction {
     Nop,
     AconstNull,
@@ -19,16 +23,16 @@ pub enum Instruction {
     Fconst2,
     Dconst0,
     Dconst1,
-    Bipush,
-    Sipush,
-    Ldc,
-    LdcW,
-    Ldc2W,
-    Iload,
-    Lload,
-    Fload,
-    Dload,
-    Aload,
+    Bipush(u8),
+    Sipush(u16),
+    Ldc(u8),
+    LdcW(u16),
+    Ldc2W(u16),
+    Iload(u8),
+    Lload(u8),
+    Fload(u8),
+    Dload(u8),
+    Aload(u8),
     Iload0,
     Iload1,
     Iload2,
@@ -57,11 +61,11 @@ pub enum Instruction {
     Baload,
     Caload,
     Saload,
-    Istore,
-    Lstore,
-    Fstore,
-    Dstore,
-    Astore,
+    Istore(u8),
+    Lstore(u8),
+    Fstore(u8),
+    Dstore(u8),
+    Astore(u8),
     Istore0,
     Istore1,
     Istore2,
@@ -135,7 +139,7 @@ pub enum Instruction {
     Lor,
     Ixor,
     Lxor,
-    Iinc,
+    Iinc(u8, i8),
     I2l,
     I2f,
     I2d,
@@ -156,59 +160,60 @@ pub enum Instruction {
     Fcmpg,
     Dcmpl,
     Dcmpg,
-    Ifeq,
-    Ifne,
-    Iflt,
-    Ifge,
-    Ifgt,
-    Ifle,
-    IfIcmpeq,
-    IfIcmpne,
-    IfIcmplt,
-    IfIcmpge,
-    IfIcmpgt,
-    IfIcmple,
-    IfAcmpeq,
-    IfAcmpne,
-    Goto,
-    Jsr,
-    Ret,
-    Tableswitch,
-    Lookupswitch,
+    Ifeq(i16),
+    Ifne(i16),
+    Iflt(i16),
+    Ifge(i16),
+    Ifgt(i16),
+    Ifle(i16),
+    IfIcmpeq(i16),
+    IfIcmpne(i16),
+    IfIcmplt(i16),
+    IfIcmpge(i16),
+    IfIcmpgt(i16),
+    IfIcmple(i16),
+    IfAcmpeq(i16),
+    IfAcmpne(i16),
+    Goto(i16),
+    Jsr(i16),
+    Ret(u8),
+    Tableswitch(TableSwitch),
+    Lookupswitch(LookupSwitch),
     Ireturn,
     Lreturn,
     Freturn,
     Dreturn,
     Areturn,
     Return,
-    Getstatic,
-    Putstatic,
-    Getfield,
-    Putfield,
-    Invokevirtual,
-    Invokespecial,
-    Invokestatic,
-    Invokeinterface,
-    Invokedynamic,
-    New,
-    Newarray,
+    Getstatic(u16),
+    Putstatic(u16),
+    Getfield(u16),
+    Putfield(u16),
+    Invokevirtual(u16),
+    Invokespecial(u16),
+    Invokestatic(u16),
+    Invokeinterface(u16, u8, u8), // InvokeInterface(_, _, Y) => Y must always be 0
+    Invokedynamic(u16, u16), // InvokeDynamic(_, X) => X must always be 0
+    New(u16),
+    Newarray(u8),
     Arraylength,
+    ANewarray(u16),
     Athrow,
-    Checkcast,
-    Instanceof,
+    Checkcast(u16),
+    Instanceof(u16),
     Monitorenter,
     Monitorexit,
-    Wide,
-    Multianewarray,
-    Ifnull,
-    Ifnonnull,
-    GotoW,
-    JsrW,
+    Wide(u8, u16, u16), // Wide(inst, _, X) => If inst is Iinc, X must be a signed 16-bit integer, otherwise X must be 0 as it should not be read. 
+    Multianewarray(u16, u8),
+    Ifnull(i16),
+    Ifnonnull(i16),
+    GotoW(i32),
+    JsrW(i32),
 }
 
 impl Instruction {
-    pub fn load(reader: &mut Box<dyn BufferReadable>) -> Result<Instruction, ClassParseError> {
-        match reader
+    pub fn load<R: BufferReadable>(buf: &mut R, start: u64) -> Result<Instruction, ClassParseError> {
+        match buf
             .read_byte()?
         {
             0 => Ok(Instruction::Nop),
@@ -227,16 +232,16 @@ impl Instruction {
             13 => Ok(Instruction::Fconst2),
             14 => Ok(Instruction::Dconst0),
             15 => Ok(Instruction::Dconst1),
-            16 => Ok(Instruction::Bipush),
-            17 => Ok(Instruction::Sipush),
-            18 => Ok(Instruction::Ldc),
-            19 => Ok(Instruction::LdcW),
-            20 => Ok(Instruction::Ldc2W),
-            21 => Ok(Instruction::Iload),
-            22 => Ok(Instruction::Lload),
-            23 => Ok(Instruction::Fload),
-            24 => Ok(Instruction::Dload),
-            25 => Ok(Instruction::Aload),
+            16 => Ok(Instruction::Bipush(buf.read_byte()?)),
+            17 => Ok(Instruction::Sipush(buf.read_u2()?)),
+            18 => Ok(Instruction::Ldc(buf.read_byte()?)),
+            19 => Ok(Instruction::LdcW(buf.read_u2()?)),
+            20 => Ok(Instruction::Ldc2W(buf.read_u2()?)),
+            21 => Ok(Instruction::Iload(buf.read_byte()?)),
+            22 => Ok(Instruction::Lload(buf.read_byte()?)),
+            23 => Ok(Instruction::Fload(buf.read_byte()?)),
+            24 => Ok(Instruction::Dload(buf.read_byte()?)),
+            25 => Ok(Instruction::Aload(buf.read_byte()?)),
             26 => Ok(Instruction::Iload0),
             27 => Ok(Instruction::Iload1),
             28 => Ok(Instruction::Iload2),
@@ -265,11 +270,11 @@ impl Instruction {
             51 => Ok(Instruction::Baload),
             52 => Ok(Instruction::Caload),
             53 => Ok(Instruction::Saload),
-            54 => Ok(Instruction::Istore),
-            55 => Ok(Instruction::Lstore),
-            56 => Ok(Instruction::Fstore),
-            57 => Ok(Instruction::Dstore),
-            58 => Ok(Instruction::Astore),
+            54 => Ok(Instruction::Istore(buf.read_byte()?)),
+            55 => Ok(Instruction::Lstore(buf.read_byte()?)),
+            56 => Ok(Instruction::Fstore(buf.read_byte()?)),
+            57 => Ok(Instruction::Dstore(buf.read_byte()?)),
+            58 => Ok(Instruction::Astore(buf.read_byte()?)),
             59 => Ok(Instruction::Istore0),
             60 => Ok(Instruction::Istore1),
             61 => Ok(Instruction::Istore2),
@@ -343,7 +348,7 @@ impl Instruction {
             129 => Ok(Instruction::Lor),
             130 => Ok(Instruction::Ixor),
             131 => Ok(Instruction::Lxor),
-            132 => Ok(Instruction::Iinc),
+            132 => Ok(Instruction::Iinc(buf.read_byte()?, buf.read_byte()? as i8)),
             133 => Ok(Instruction::I2l),
             134 => Ok(Instruction::I2f),
             135 => Ok(Instruction::I2d),
@@ -364,54 +369,62 @@ impl Instruction {
             150 => Ok(Instruction::Fcmpg),
             151 => Ok(Instruction::Dcmpl),
             152 => Ok(Instruction::Dcmpg),
-            153 => Ok(Instruction::Ifeq),
-            154 => Ok(Instruction::Ifne),
-            155 => Ok(Instruction::Iflt),
-            156 => Ok(Instruction::Ifge),
-            157 => Ok(Instruction::Ifgt),
-            158 => Ok(Instruction::Ifle),
-            159 => Ok(Instruction::IfIcmpeq),
-            160 => Ok(Instruction::IfIcmpne),
-            161 => Ok(Instruction::IfIcmplt),
-            162 => Ok(Instruction::IfIcmpge),
-            163 => Ok(Instruction::IfIcmpgt),
-            164 => Ok(Instruction::IfIcmple),
-            165 => Ok(Instruction::IfAcmpeq),
-            166 => Ok(Instruction::IfAcmpne),
-            167 => Ok(Instruction::Goto),
-            168 => Ok(Instruction::Jsr),
-            169 => Ok(Instruction::Ret),
-            170 => Ok(Instruction::Tableswitch),
-            171 => Ok(Instruction::Lookupswitch),
+            153 => Ok(Instruction::Ifeq(buf.read_u2()? as i16)),
+            154 => Ok(Instruction::Ifne(buf.read_u2()? as i16)),
+            155 => Ok(Instruction::Iflt(buf.read_u2()? as i16)),
+            156 => Ok(Instruction::Ifge(buf.read_u2()? as i16)),
+            157 => Ok(Instruction::Ifgt(buf.read_u2()? as i16)),
+            158 => Ok(Instruction::Ifle(buf.read_u2()? as i16)),
+            159 => Ok(Instruction::IfIcmpeq(buf.read_u2()? as i16)),
+            160 => Ok(Instruction::IfIcmpne(buf.read_u2()? as i16)),
+            161 => Ok(Instruction::IfIcmplt(buf.read_u2()? as i16)),
+            162 => Ok(Instruction::IfIcmpge(buf.read_u2()? as i16)),
+            163 => Ok(Instruction::IfIcmpgt(buf.read_u2()? as i16)),
+            164 => Ok(Instruction::IfIcmple(buf.read_u2()? as i16)),
+            165 => Ok(Instruction::IfAcmpeq(buf.read_u2()? as i16)),
+            166 => Ok(Instruction::IfAcmpne(buf.read_u2()? as i16)),
+            167 => Ok(Instruction::Goto(buf.read_u2()? as i16)),
+            168 => Ok(Instruction::Jsr(buf.read_u2()? as i16)),
+            169 => Ok(Instruction::Ret(buf.read_byte()?)),
+            170 => Ok(Instruction::Tableswitch(TableSwitch::load(buf, start)?)),
+            171 => Ok(Instruction::Lookupswitch(LookupSwitch::load(buf, start)?)),
             172 => Ok(Instruction::Ireturn),
             173 => Ok(Instruction::Lreturn),
             174 => Ok(Instruction::Freturn),
             175 => Ok(Instruction::Dreturn),
             176 => Ok(Instruction::Areturn),
             177 => Ok(Instruction::Return),
-            178 => Ok(Instruction::Getstatic),
-            179 => Ok(Instruction::Putstatic),
-            180 => Ok(Instruction::Getfield),
-            181 => Ok(Instruction::Putfield),
-            182 => Ok(Instruction::Invokevirtual),
-            183 => Ok(Instruction::Invokespecial),
-            184 => Ok(Instruction::Invokestatic),
-            185 => Ok(Instruction::Invokeinterface),
-            186 => Ok(Instruction::Invokedynamic),
-            187 => Ok(Instruction::New),
-            188 => Ok(Instruction::Newarray),
+            178 => Ok(Instruction::Getstatic(buf.read_u2()?)),
+            179 => Ok(Instruction::Putstatic(buf.read_u2()?)),
+            180 => Ok(Instruction::Getfield(buf.read_u2()?)),
+            181 => Ok(Instruction::Putfield(buf.read_u2()?)),
+            182 => Ok(Instruction::Invokevirtual(buf.read_u2()?)),
+            183 => Ok(Instruction::Invokespecial(buf.read_u2()?)),
+            184 => Ok(Instruction::Invokestatic(buf.read_u2()?)),
+            185 => Ok(Instruction::Invokeinterface(buf.read_u2()?, buf.read_byte()?, buf.read_byte()?)),
+            186 => Ok(Instruction::Invokedynamic(buf.read_u2()?, buf.read_u2()?)),
+            187 => Ok(Instruction::New(buf.read_u2()?)),
+            188 => Ok(Instruction::Newarray(buf.read_byte()?)),
+            189 => Ok(Instruction::ANewarray(buf.read_u2()?)),
             190 => Ok(Instruction::Arraylength),
             191 => Ok(Instruction::Athrow),
-            192 => Ok(Instruction::Checkcast),
-            193 => Ok(Instruction::Instanceof),
+            192 => Ok(Instruction::Checkcast(buf.read_u2()?)),
+            193 => Ok(Instruction::Instanceof(buf.read_u2()?)),
             194 => Ok(Instruction::Monitorenter),
             195 => Ok(Instruction::Monitorexit),
-            196 => Ok(Instruction::Wide),
-            197 => Ok(Instruction::Multianewarray),
-            198 => Ok(Instruction::Ifnull),
-            199 => Ok(Instruction::Ifnonnull),
-            200 => Ok(Instruction::GotoW),
-            201 => Ok(Instruction::JsrW),
+            196 => {
+                let opcode = buf.read_byte()?;
+                if opcode != 132 {
+                    return Ok(Instruction::Wide(opcode, buf.read_u2()?, 0));
+                } else {
+                    return Ok(Instruction::Wide(opcode, buf.read_u2()?, buf.read_u2()?));
+                }
+            },
+            197 => Ok(Instruction::Multianewarray(buf.read_u2()?, buf.read_byte()?)),
+            198 => Ok(Instruction::Ifnull(buf.read_u2()? as i16)),
+            199 => Ok(Instruction::Ifnonnull(buf.read_u2()? as i16)),
+            200 => Ok(Instruction::GotoW(buf.read_u4()? as i32)),
+            201 => Ok(Instruction::JsrW(buf.read_u4()? as i32)),
 
             x => {
                 return Err(ClassParseError::CodeParseError { internal: CodeParseError::InvalidBytecode {
@@ -420,5 +433,54 @@ impl Instruction {
                 }, classpath: None, signature: None})
             }
         }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct LookupSwitch {
+    default: i32,
+    npairs: i32,
+    matches: Vec<(i32, i32)>,
+}
+impl LookupSwitch {
+    pub fn load<R: BufferReadable>(buf: &mut R, start: u64) -> Result<LookupSwitch, ClassParseError> {
+        let bytes_bffr = (buf.seek(SeekFrom::Current(0)).unwrap() - start) % 4; 
+        if bytes_bffr != 0 {
+            buf.seek(SeekFrom::Current(4 - bytes_bffr as i64)).unwrap();
+        }
+        let default = buf.read_u4()? as i32;
+        let npairs = buf.read_u4()? as i32;
+        let mut matches = Vec::new();
+        for _ in 0..npairs {
+            let match_ = buf.read_u4()? as i32;
+            let offset = buf.read_u4()? as i32;
+            matches.push((match_, offset));
+        }
+        Ok(LookupSwitch { default, npairs, matches })
+        
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TableSwitch {
+    default: i32,
+    low: i32,
+    high: i32,
+    offsets: Vec<i32>,
+}
+impl TableSwitch {
+    pub fn load<R: BufferReadable>(buf: &mut R, start: u64) -> Result<TableSwitch, ClassParseError> {
+        let bytes_bffr = (buf.seek(SeekFrom::Current(0)).unwrap() - start) % 4; 
+        if bytes_bffr != 0 {
+            buf.seek(SeekFrom::Current(4 - bytes_bffr as i64)).unwrap();
+        }
+        let default = buf.read_u4()? as i32;
+        let low = buf.read_u4()? as i32;
+        let high = buf.read_u4()? as i32;
+        let mut offsets = Vec::new();
+        for _ in 0..(high - low + 1) {
+            let offset = buf.read_u4()? as i32;
+            offsets.push(offset);
+        }
+        Ok(TableSwitch { default, low, high, offsets })
     }
 }

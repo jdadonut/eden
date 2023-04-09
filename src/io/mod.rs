@@ -12,31 +12,19 @@ pub trait BufferReadable : Read + Seek {
     
     fn read_byte(&mut self) -> Result<u8, ClassParseError> {
         let mut buffer = [0; 1];
-        match self.read(&mut buffer) {
-            Ok(_) => Ok(buffer[0]),
-            Err(_) => Err(ClassParseError::EarlyEOF("EOF@".to_string())),
+        if let Err(io) = self.read(&mut buffer) {
+            return Err(ClassParseError::IOError(io));
         }
+        Ok(buffer[0])
     }
     fn read_u2(&mut self) -> Result<u16, ClassParseError> {
-        let mut buffer = [0; 2];
-        match self.read(&mut buffer) {
-            Ok(_) => Ok(u16::from_be_bytes(buffer)),
-            Err(_) => Err(ClassParseError::EarlyEOF("EOF@".to_string())),
-        }
+        Ok((self.read_byte()? as u16) << 8 | self.read_byte()? as u16)
     }
     fn read_u4(&mut self) -> Result<u32, ClassParseError> {
-        let mut buffer = [0; 4];
-        match self.read(&mut buffer) {
-            Ok(_) => Ok(u32::from_be_bytes(buffer)),
-            Err(_) => Err(ClassParseError::EarlyEOF("EOF@".to_string())),
-        }
+        Ok((self.read_u2()? as u32) << 16 | self.read_u2()? as u32)
     }
     fn read_u8(&mut self) -> Result<u64, ClassParseError> {
-        let mut buffer = [0; 8];
-        match self.read(&mut buffer) {
-            Ok(_) => Ok(u64::from_be_bytes(buffer)),
-            Err(_) => Err(ClassParseError::EarlyEOF("EOF@".to_string())),
-        }
+        Ok((self.read_u4()? as u64) << 32 | self.read_u4()? as u64)
     }
     fn read_string(&mut self) -> Result<String, ClassParseError> {
         let size = self.read_u2()?;

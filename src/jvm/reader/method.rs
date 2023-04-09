@@ -1,12 +1,12 @@
 use crate::{io::{BufferReadable, Prebuffer}, util::code_err::{ClassParseError, CodeParseError}};
 
-use super::{attribute::Attributes, code::block::CodeBlock, constant_pool_info::ConstantPool};
+use super::{attribute::Attributes, code::block::CodeBlock, constant_pool::ConstantPool};
 
-
+#[derive(Debug)]
 pub struct Methods(pub Vec<MethodInfo>);
 
 impl Methods {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let methods_count = buf.read_u2()?;
         let mut methods = Vec::new();
         for _ in 0..methods_count {
@@ -21,7 +21,7 @@ impl Methods {
         Ok(())
     }
 }
-
+#[derive(Debug)]
 pub struct MethodInfo {
     pub access_flags: u16,
     pub name_index: u16,
@@ -31,7 +31,7 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
-    pub fn load(buf: &mut Box<dyn BufferReadable>) -> Result<Self, ClassParseError> {
+    pub fn load<R: BufferReadable>(buf: &mut R) -> Result<Self, ClassParseError> {
         let access_flags = buf.read_u2()?;
         let name_index = buf.read_u2()?;
         let descriptor_index = buf.read_u2()?;
@@ -47,7 +47,7 @@ impl MethodInfo {
     pub fn load_code(&mut self, constant_pool: &ConstantPool) -> Result<(), ClassParseError> {
         match self.attributes.find_by_name("Code", constant_pool)? {
             Some(attr) => {
-                self.code = Some(CodeBlock::load(&mut  ((box Prebuffer::copy_from_vec(&attr.info)) as Box<dyn BufferReadable>))?);
+                self.code = Some(CodeBlock::load(&mut Prebuffer::copy_from_vec(&attr.info))?);
             }
             None => {
                 return Err(
